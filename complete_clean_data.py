@@ -82,7 +82,7 @@ def process_csv(filename="index.csv"):
 def clean_text(text):
     """Removes whitespace and special characters."""
     text = text.strip()
-    text = re.sub(r"[^a-zA-Z0-9\s.,!?]", "", text)  # Keep basic punctuation
+    text = re.sub(r"[^a-zA-Z0-9\s.,!?]", "", text)
     return text
 
 def extract_b_tags():
