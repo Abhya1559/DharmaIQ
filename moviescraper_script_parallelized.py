@@ -33,7 +33,6 @@ def scrape_script(title, script_url):
         if script_content:
             script_text = script_content[0].get_text()
 
-            # Store script in MongoDB
             collection.insert_one({
                 "title": title,
                 "script_url": script_url,
@@ -55,7 +54,7 @@ def process_csv(filename="index.csv"):
 
     with open(filename, mode="r", encoding="utf-8") as file:
         reader = csv.reader(file)
-        next(reader, None)  # Skip header row
+        next(reader, None)
 
         movies = [(title, script_url) for title, script_url in reader]
 
@@ -63,15 +62,13 @@ def process_csv(filename="index.csv"):
         print("Error: CSV file is empty!")
         return
 
-    # Use tqdm_joblib for proper progress tracking
     with tqdm_joblib(tqdm(desc="Scraping Scripts", total=len(movies), ncols=100)):
         results = Parallel(n_jobs=NUM_WORKERS, backend="threading")(
             delayed(scrape_script)(title, script_url) for title, script_url in movies
         )
 
-    # Print summary
     for res in results:
         print(res)
 
 if __name__ == "__main__":
-    process_csv("index.csv")  # Read from index.csv and scrape scripts
+    process_csv("index.csv")  

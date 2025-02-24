@@ -31,7 +31,6 @@ db = mongo_client[DB_NAME]
 collection = db[COLLECTION_NAME]
 cleaned_collection = db[CLEANED_COLLECTION]
 
-# --------------------------- SCRAPE MOVIE SCRIPTS ---------------------------
 def scrape_script(title, script_url):
     """Scrapes an individual script and saves it to MongoDB."""
     try:
@@ -51,7 +50,6 @@ def scrape_script(title, script_url):
     except requests.exceptions.RequestException:
         return f"Error: {title}"
 
-# --------------------------- EXTRACT CHARACTER DIALOGUES ---------------------------
 def extract_character_dialogues():
     """Extracts dialogues per character and stores them in MongoDB."""
     scripts = list(collection.find({}, {"_id": 0, "title": 1, "script_text": 1}))
@@ -74,9 +72,8 @@ def extract_character_dialogues():
         if dialogues:
             cleaned_collection.insert_one({"title": title, "dialogues": dialogues})
     
-    print("✅ Dialogues stored in MongoDB!")
+    print(" Dialogues stored in MongoDB!")
 
-# --------------------------- SEARCH FOR A MATCHING DIALOGUE ---------------------------
 def find_matching_dialogue(movie_name, input_text):
     """Finds a closely matching dialogue from MongoDB."""
     movie = cleaned_collection.find_one({"title": movie_name}, {"_id": 0, "dialogues": 1})
@@ -91,7 +88,6 @@ def find_matching_dialogue(movie_name, input_text):
     
     return None
 
-# --------------------------- FALLBACK TO AI ---------------------------
 def generate_ai_response(movie_name, input_text):
     """Generates a response using Gemini AI if no matching dialogue is found."""
     model = genai.GenerativeModel("gemini-pro")
@@ -101,7 +97,6 @@ def generate_ai_response(movie_name, input_text):
     response = model.generate_content(prompt)
     return response.text.strip() if response else "I don't know."
 
-# --------------------------- FLASK API ---------------------------
 app = Flask(__name__)
 
 @app.route("/chat", methods=["POST"])

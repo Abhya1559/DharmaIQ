@@ -32,26 +32,21 @@ CLEANED_COLLECTION = "cleaned_scripts"
 # Parallel processing
 NUM_WORKERS = 16  # Adjust based on CPU cores
 
-# Connect to MongoDB
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client[DB_NAME]
 collection = db[COLLECTION_NAME]
 cleaned_collection = db[CLEANED_COLLECTION]
 
-# FAISS Setup
-VECTOR_DIMENSION = 768  # SentenceTransformer embedding size
+VECTOR_DIMENSION = 768 
 faiss_index = faiss.IndexFlatL2(VECTOR_DIMENSION)
-dialogue_mapping = []  # Stores (dialogue, movie_title, character)
+dialogue_mapping = []  
 
-# Load SentenceTransformer Model
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# --------------------------- EMBEDDING FUNCTIONS ---------------------------
 def get_embedding(text):
     """Generates an embedding for a given text using SentenceTransformer."""
     return embedding_model.encode(text, convert_to_numpy=True)
 
-# --------------------------- INDEXING MOVIE DIALOGUES ---------------------------
 def index_movie_dialogues():
     """Extracts dialogues from MongoDB, generates embeddings, and stores them in FAISS."""
     global dialogue_mapping
@@ -71,14 +66,13 @@ def index_movie_dialogues():
     
     if dialogue_data:
         embeddings = np.array([d[0] for d in dialogue_data], dtype=np.float32)
-        embeddings = embeddings.reshape(-1, VECTOR_DIMENSION)  # Ensure correct shape
+        embeddings = embeddings.reshape(-1, VECTOR_DIMENSION)  
         faiss_index.add(embeddings)
-        dialogue_mapping.extend([(d[1], d[2], d[3]) for d in dialogue_data])  # (dialogue, movie, character)
+        dialogue_mapping.extend([(d[1], d[2], d[3]) for d in dialogue_data]) 
         print("\u2705 FAISS Index Built!")
     else:
         print("\u26A0 No dialogues found for indexing!")
 
-# --------------------------- CHAT API ---------------------------
 app = Flask(__name__)
 
 @app.route("/chat", methods=["POST"])
@@ -90,14 +84,11 @@ def chat():
     if not user_input:
         return jsonify({"error": "Message is required!"}), 400
     
-    # Generate embedding for user input
     input_embedding = get_embedding(user_input).reshape(1, -1)
     
-    # Ensure FAISS index is not empty
     if faiss_index.ntotal == 0:
         return jsonify({"error": "No dialogues indexed yet. Please add movie dialogues."}), 500
-
-    # Search FAISS for closest match
+    
     _, indices = faiss_index.search(input_embedding, 1)
     closest_index = indices[0][0]
     
@@ -105,7 +96,6 @@ def chat():
         closest_dialogue, movie, character = dialogue_mapping[closest_index]
         return jsonify({"response": closest_dialogue, "movie": movie, "character": character})
     
-    # If no match, generate AI response
     model = genai.GenerativeModel("gemini-pro")
     prompt = f"{user_input} (If this is from a movie, respond in character.)"
     
@@ -118,5 +108,5 @@ def chat():
     return jsonify({"response": ai_response})
 
 if __name__ == "__main__":
-    index_movie_dialogues()  # Index dialogues before starting API
+    index_movie_dialogues() 
     app.run(debug=True, use_reloader=False)
